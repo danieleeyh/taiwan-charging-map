@@ -1,15 +1,15 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Zap, MapPin, Clock, Star, ChevronRight, Navigation, Utensils, Coffee, Building2, ShoppingBag, ParkingSquare, Wifi, Store, Bath } from 'lucide-react';
 import { Station, AmenityType, amenityLabels } from '../data/stations';
 
 function availInfo(available: number, total: number) {
   const r = available / total;
-  if (r === 0) return { bg: 'bg-red-50', text: 'text-red-600', dot: 'bg-red-500', label: '無空位' };
-  if (r < 0.3) return { bg: 'bg-orange-50', text: 'text-orange-600', dot: 'bg-orange-500', label: '快滿了' };
-  if (r < 0.7) return { bg: 'bg-amber-50', text: 'text-amber-600', dot: 'bg-amber-500', label: '部分可用' };
-  return { bg: 'bg-emerald-50', text: 'text-emerald-600', dot: 'bg-emerald-500', label: '空位充足' };
+  if (r === 0) return { bg: '#fef2f2', text: '#dc2626', dot: '#ef4444', label: '無空位' };
+  if (r < 0.3) return { bg: '#fff7ed', text: '#ea580c', dot: '#f97316', label: '快滿了' };
+  if (r < 0.7) return { bg: '#fffbeb', text: '#d97706', dot: '#f59e0b', label: '部分可用' };
+  return { bg: '#f0fdf4', text: '#16a34a', dot: '#22c55e', label: '空位充足' };
 }
 
 function stallColor(status: string) {
@@ -19,10 +19,10 @@ function stallColor(status: string) {
   return '#d1d5db';
 }
 
-function chargerBadge(type: string) {
-  if (type === 'V4') return 'bg-purple-100 text-purple-700 border-purple-200';
-  if (type === 'V3') return 'bg-blue-100 text-blue-700 border-blue-200';
-  return 'bg-gray-100 text-gray-600 border-gray-200';
+function chargerColor(type: string) {
+  if (type === 'V4') return { bg: '#f3e8ff', text: '#7c3aed' };
+  if (type === 'V3') return { bg: '#eff6ff', text: '#2563eb' };
+  return { bg: '#f9fafb', text: '#6b7280' };
 }
 
 const amenityIcons: Record<AmenityType, React.ReactNode> = {
@@ -33,113 +33,158 @@ const amenityIcons: Record<AmenityType, React.ReactNode> = {
 
 export default function StationPanel({ station, onClose }: { station: Station | null; onClose: () => void }) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (station) bodyRef.current?.scrollTo(0, 0); }, [station?.id]);
+  const [visible, setVisible] = useState(false);
+
+  // Animate in/out with a small delay so CSS transition fires
+  useEffect(() => {
+    if (station) {
+      // Trigger open on next frame
+      requestAnimationFrame(() => setVisible(true));
+      bodyRef.current?.scrollTo(0, 0);
+    } else {
+      setVisible(false);
+    }
+  }, [station?.id]);
 
   const info = station ? availInfo(station.availableStalls, station.totalStalls) : null;
+  const cc = station ? chargerColor(station.chargerType) : null;
 
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className="fixed inset-0 z-30 transition-opacity duration-300 pointer-events-none"
-        style={{ background: station ? 'rgba(0,0,0,0.18)' : 'transparent', pointerEvents: station ? 'auto' : 'none' }}
-      />
+      {station && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.2)',
+            zIndex: 1100,
+            opacity: visible ? 1 : 0,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      )}
 
-      {/* Panel — slides up on mobile, in from right on desktop */}
+      {/* Panel */}
       <div
-        className="fixed z-40 bg-white flex flex-col
-          bottom-0 left-0 right-0 rounded-t-[28px] max-h-[88vh]
-          md:top-0 md:bottom-0 md:right-0 md:left-auto md:w-[420px] md:rounded-none md:max-h-full
-          shadow-2xl
-          transition-transform duration-500"
         style={{
-          transform: station
-            ? 'translateY(0)'
-            : 'translateY(100%)',
+          position: 'fixed',
+          bottom: 0, left: 0, right: 0,
+          zIndex: 1200,
+          background: 'white',
+          borderRadius: '24px 24px 0 0',
+          boxShadow: '0 -4px 40px rgba(0,0,0,0.18)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '88vh',
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.45s cubic-bezier(0.32,0.72,0,1)',
           willChange: 'transform',
         }}
       >
-        {/* Drag pill */}
-        <div className="flex justify-center pt-3 pb-0 md:hidden">
-          <div className="w-9 h-1 rounded-full bg-gray-200" />
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb' }} />
         </div>
 
         {station && (
           <>
             {/* Header */}
-            <div className="px-6 pt-4 pb-5 border-b border-gray-100 flex-shrink-0">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full border ${chargerBadge(station.chargerType)}`}>
-                      <Zap size={10} />
-                      {station.chargerType} · {station.maxKw} kW
+            <div style={{ padding: '16px 24px 20px', borderBottom: '1px solid #f3f4f6', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {/* Badges */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: '4px 10px', borderRadius: 999,
+                      fontSize: 12, fontWeight: 600,
+                      background: cc!.bg, color: cc!.text,
+                      border: `1px solid ${cc!.text}30`,
+                    }}>
+                      <Zap size={10} /> {station.chargerType} · {station.maxKw} kW
                     </span>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold rounded-full ${info!.bg} ${info!.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${info!.dot} animate-pulse`} />
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '4px 10px', borderRadius: 999,
+                      fontSize: 12, fontWeight: 600,
+                      background: info!.bg, color: info!.text,
+                    }}>
+                      <span style={{
+                        width: 6, height: 6, borderRadius: '50%',
+                        background: info!.dot,
+                        animation: 'pulse 2s infinite',
+                      }} />
                       {info!.label}
                     </span>
                   </div>
 
-                  <h2 className="text-[22px] font-bold text-gray-900 leading-tight">{station.name}</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0, lineHeight: 1.2 }}>
+                    {station.name}
+                  </h2>
 
-                  <div className="flex items-center gap-1.5 mt-1.5 text-sm text-gray-500">
-                    <MapPin size={12} className="flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{station.address}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, color: '#9ca3af', fontSize: 13 }}>
+                    <MapPin size={12} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{station.address}</span>
                   </div>
 
-                  <div className="flex items-center gap-3 mt-2">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
                     {station.rating && (
-                      <span className="flex items-center gap-1 text-sm font-medium text-gray-700">
-                        <Star size={12} className="fill-amber-400 text-amber-400" />
-                        {station.rating}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                        <Star size={12} fill="#fbbf24" color="#fbbf24" /> {station.rating}
                       </span>
                     )}
-                    <span className="flex items-center gap-1 text-sm text-gray-500">
-                      <Clock size={12} className="text-gray-400" />
-                      {station.openHours}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#9ca3af' }}>
+                      <Clock size={12} /> {station.openHours}
                     </span>
                   </div>
                 </div>
 
                 <button
                   onClick={onClose}
-                  className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors mt-0.5"
+                  style={{
+                    flexShrink: 0, width: 32, height: 32, borderRadius: '50%',
+                    background: '#f3f4f6', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginTop: 2,
+                  }}
                 >
-                  <X size={15} className="text-gray-600" />
+                  <X size={15} color="#6b7280" />
                 </button>
               </div>
             </div>
 
-            {/* Scrollable content */}
-            <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+            {/* Scrollable body */}
+            <div ref={bodyRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
               {/* Stall grid */}
               <div>
-                <div className="flex items-baseline justify-between mb-3">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">充電格位</h3>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold text-gray-900">{station.availableStalls}</span>
-                    <span className="text-sm text-gray-400"> / {station.totalStalls} 可用</span>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em' }}>充電格位</span>
+                  <div>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: '#111827' }}>{station.availableStalls}</span>
+                    <span style={{ fontSize: 14, color: '#9ca3af' }}> / {station.totalStalls} 可用</span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {station.stalls.map((stall) => (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                  {station.stalls.map(stall => (
                     <div
                       key={stall.id}
                       title={`格位 ${stall.id}`}
-                      style={{ background: stallColor(stall.status) }}
-                      className="w-7 h-8 rounded-md transition-opacity hover:opacity-75"
+                      style={{
+                        width: 28, height: 32, borderRadius: 6,
+                        background: stallColor(stall.status),
+                        transition: 'opacity 0.2s',
+                      }}
                     />
                   ))}
                 </div>
 
-                <div className="flex items-center gap-4 text-xs text-gray-400">
+                <div style={{ display: 'flex', gap: 16 }}>
                   {[['#34d399', '空位'], ['#60a5fa', '使用中'], ['#f87171', '故障']].map(([color, label]) => (
-                    <span key={label} className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: color }} />
+                    <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#9ca3af' }}>
+                      <span style={{ width: 10, height: 10, borderRadius: 2, background: color, display: 'inline-block' }} />
                       {label}
                     </span>
                   ))}
@@ -147,34 +192,39 @@ export default function StationPanel({ station, onClose }: { station: Station | 
               </div>
 
               {/* Power card */}
-              <div className="rounded-2xl bg-gray-50 p-4 flex items-center justify-between">
+              <div style={{
+                background: '#f9fafb', borderRadius: 16, padding: 16,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">最大功率</p>
-                  <p className="text-3xl font-bold text-gray-900 leading-none">
-                    {station.maxKw}
-                    <span className="text-base font-medium text-gray-400 ml-1">kW</span>
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1.5">≈ {Math.round(station.maxKw / 5)} km / min</p>
+                  <div style={{ fontSize: 12, color: '#9ca3af', marginBottom: 2 }}>最大功率</div>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: '#111827', lineHeight: 1 }}>
+                    {station.maxKw}<span style={{ fontSize: 16, fontWeight: 500, color: '#9ca3af', marginLeft: 4 }}>kW</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>≈ {Math.round(station.maxKw / 5)} km / min</div>
                 </div>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                  station.chargerType === 'V4' ? 'bg-purple-100' :
-                  station.chargerType === 'V3' ? 'bg-blue-100' : 'bg-gray-100'
-                }`}>
-                  <Zap size={26} className={
-                    station.chargerType === 'V4' ? 'text-purple-600' :
-                    station.chargerType === 'V3' ? 'text-blue-600' : 'text-gray-500'
-                  } fill="currentColor" />
+                <div style={{
+                  width: 56, height: 56, borderRadius: 16,
+                  background: cc!.bg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Zap size={26} color={cc!.text} fill={cc!.text} />
                 </div>
               </div>
 
               {/* Amenities */}
               {station.amenities.length > 0 && (
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">周邊設施</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {station.amenities.map((a) => (
-                      <span key={a} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-full text-sm text-gray-600 shadow-sm hover:border-gray-200 transition-colors">
-                        <span className="text-gray-400">{amenityIcons[a]}</span>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>周邊設施</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {station.amenities.map(a => (
+                      <span key={a} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '8px 14px', background: 'white', border: '1px solid #f3f4f6',
+                        borderRadius: 999, fontSize: 13, color: '#374151',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                      }}>
+                        <span style={{ color: '#9ca3af' }}>{amenityIcons[a]}</span>
                         {amenityLabels[a]}
                       </span>
                     ))}
@@ -183,23 +233,41 @@ export default function StationPanel({ station, onClose }: { station: Station | 
               )}
 
               {/* CTA buttons */}
-              <div className="space-y-2.5 pb-6">
-                <button className="w-full flex items-center justify-between bg-gray-900 text-white px-5 py-[14px] rounded-2xl font-medium hover:bg-gray-700 active:scale-[0.98] transition-all">
-                  <span className="flex items-center gap-2.5">
-                    <Navigation size={17} />
-                    前往導航
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 24 }}>
+                <button style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: '#111827', color: 'white',
+                  padding: '15px 20px', borderRadius: 16, border: 'none',
+                  fontSize: 15, fontWeight: 500, cursor: 'pointer',
+                }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Navigation size={17} /> 前往導航
                   </span>
-                  <ChevronRight size={17} className="text-gray-500" />
+                  <ChevronRight size={17} color="#6b7280" />
                 </button>
-                <button className="w-full flex items-center justify-between bg-gray-50 text-gray-700 px-5 py-[14px] rounded-2xl font-medium border border-gray-100 hover:bg-gray-100 active:scale-[0.98] transition-all">
+
+                <button style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: '#f9fafb', color: '#374151',
+                  padding: '15px 20px', borderRadius: 16,
+                  border: '1px solid #f3f4f6',
+                  fontSize: 15, fontWeight: 500, cursor: 'pointer',
+                }}>
                   <span>充電費率 &amp; 詳細資訊</span>
-                  <ChevronRight size={17} className="text-gray-400" />
+                  <ChevronRight size={17} color="#9ca3af" />
                 </button>
               </div>
             </div>
           </>
         )}
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </>
   );
 }

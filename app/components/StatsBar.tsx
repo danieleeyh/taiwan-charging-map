@@ -4,24 +4,32 @@ import { Station } from '../data/stations';
 export default function StatsBar({ stations }: { stations: Station[] }) {
   const total = stations.reduce((s, st) => s + st.totalStalls, 0);
   const avail = stations.reduce((s, st) => s + st.availableStalls, 0);
-  const pct = Math.round(((total - avail) / total) * 100);
+  const usedPct = Math.round(((total - avail) / total) * 100);
+
+  const col = (label: string, value: string | number, color = '#111827') => (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+
   return (
-    <div className="absolute bottom-6 left-4 z-20 md:bottom-10">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-3 flex items-center gap-4">
-        <div className="text-center">
-          <p className="text-[10px] text-gray-400 mb-0.5 uppercase tracking-wider">充電站</p>
-          <p className="text-xl font-bold text-gray-900 leading-none">{stations.length}</p>
-        </div>
-        <div className="w-px h-8 bg-gray-100" />
-        <div className="text-center">
-          <p className="text-[10px] text-gray-400 mb-0.5 uppercase tracking-wider">空位</p>
-          <p className="text-xl font-bold text-emerald-500 leading-none">{avail}</p>
-        </div>
-        <div className="w-px h-8 bg-gray-100" />
-        <div className="text-center">
-          <p className="text-[10px] text-gray-400 mb-0.5 uppercase tracking-wider">使用率</p>
-          <p className="text-xl font-bold text-gray-900 leading-none">{pct}%</p>
-        </div>
+    <div style={{ position: 'absolute', bottom: 24, left: 16, zIndex: 1000 }}>
+      <div style={{
+        background: 'white',
+        borderRadius: 16,
+        boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+        border: '1px solid #f3f4f6',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+      }}>
+        {col('充電站', stations.length)}
+        <div style={{ width: 1, height: 32, background: '#f3f4f6' }} />
+        {col('空位', avail, '#10b981')}
+        <div style={{ width: 1, height: 32, background: '#f3f4f6' }} />
+        {col('使用率', `${usedPct}%`)}
       </div>
     </div>
   );
