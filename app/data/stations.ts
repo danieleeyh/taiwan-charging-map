@@ -48,7 +48,7 @@ export const stations: Station[] = [
   { id: 'hualien',      name: '花蓮市超充站',      address: '花蓮縣花蓮市中山路88號',            city: '花蓮縣', lat: 23.9772, lng: 121.6044, totalStalls: 8,  availableStalls: 6,  chargerType: 'V3', maxKw: 250, amenities: ['restaurant','hotel','restroom','wifi'],           stalls: makeStalls(8,6),    openHours: '24小時', rating: 4.7, pricePerKwh: 7.0 },
 ];
 
-export const cities = [...new Set(stations.map(s => s.city))];
+export const cities = Array.from(new Set(stations.map(s => s.city)));
 
 export const amenityLabels: Record<AmenityType, string> = {
   restaurant: '餐廳', cafe: '咖啡廳', hotel: '飯店', shopping: '購物',
