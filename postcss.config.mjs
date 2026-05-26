@@ -1,4 +1,1 @@
-const config = {
-  plugins: { "@tailwindcss/postcss": {} },
-};
-export default config;
+// replaced by postcss.config.js

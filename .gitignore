@@ -1,14 +1,14 @@
-# dependencies
+# deps
 /node_modules
-/.pnp
-.pnp.js
+
+# next build
 /.next/
 /out/
-/build
+
+# env
+.env*.local
+
+# misc
 .DS_Store
 *.pem
-npm-debug.log*
-.env*.local
-.vercel
-*.tsbuildinfo
-next-env.d.ts
+Thumbs.db
