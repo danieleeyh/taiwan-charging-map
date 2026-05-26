@@ -1,3 +1,5 @@
 # Taiwan EV Charging Map
 
-A map application for EV drivers in Taiwan to find charging stations and check real-time availability.
+Find EV charging stations across Taiwan.
+
+Live at: https://taiwan-charging-map.vercel.app
