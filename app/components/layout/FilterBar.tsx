@@ -3,33 +3,33 @@ import { ChargerType } from '../../data/stations';
 
 export interface Filters {
   chargerType: ChargerType | 'all';
-  availability: 'all' | 'available' | 'busy' | 'full';
+  network: string;
   city: string;
 }
 
 interface Props {
   filters: Filters;
   cities: string[];
+  networks: string[];
   onChange: (f: Filters) => void;
   resultCount: number;
 }
 
 const TYPE_OPTIONS: { value: Filters['chargerType']; label: string; sub: string; color: string }[] = [
-  { value: 'all', label: '全部', sub: '',       color: '#374151' },
-  { value: 'V4',  label: 'V4',  sub: '350kW',  color: '#7c3aed' },
-  { value: 'V3',  label: 'V3',  sub: '250kW',  color: '#2563eb' },
-  { value: 'V2',  label: 'V2',  sub: '150kW',  color: '#6b7280' },
-  { value: 'AC',  label: '慢充', sub: '≤22kW', color: '#16a34a' },
+  { value: 'all', label: '全部', sub: '',        color: '#374151' },
+  { value: 'V4',  label: 'V4',  sub: '350kW',   color: '#7c3aed' },
+  { value: 'V3',  label: 'V3',  sub: '250kW',   color: '#2563eb' },
+  { value: 'V2',  label: 'V2',  sub: '150kW',   color: '#6b7280' },
+  { value: 'AC',  label: '慢充', sub: '≤22kW',  color: '#16a34a' },
 ];
 
-const AVAIL_OPTIONS: { value: Filters['availability']; label: string; dot: string }[] = [
-  { value: 'all',       label: '全部',   dot: '#9ca3af' },
-  { value: 'available', label: '有空位', dot: '#22c55e' },
-  { value: 'busy',      label: '快滿了', dot: '#f97316' },
-  { value: 'full',      label: '無空位', dot: '#ef4444' },
-];
+const NETWORK_COLORS: Record<string, string> = {
+  Tesla: '#dc2626', '裕電能源': '#2563eb', 'U-Power': '#7c3aed',
+  '台灣中油': '#16a34a', 'ForMosa EV': '#0891b2', '台灣電力': '#f59e0b',
+  '停車場自建': '#6b7280', '自建': '#9ca3af',
+};
 
-export default function FilterBar({ filters, cities, onChange, resultCount }: Props) {
+export default function FilterBar({ filters, cities, networks, onChange, resultCount }: Props) {
   const pill = (active: boolean, color: string, onClick: () => void, children: React.ReactNode) => (
     <button onClick={onClick} style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -52,7 +52,6 @@ export default function FilterBar({ filters, cities, onChange, resultCount }: Pr
       backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(0,0,0,0.06)',
     }}>
-      {/* Hide native scrollbar across all browsers */}
       <style>{`
         .filter-scroll::-webkit-scrollbar { display: none; }
         .filter-scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -62,7 +61,7 @@ export default function FilterBar({ filters, cities, onChange, resultCount }: Pr
         display: 'flex', alignItems: 'center', gap: 6,
         overflowX: 'auto', padding: '9px 16px',
       }}>
-        {/* Charger type */}
+        {/* Charger speed */}
         <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, marginRight: 2 }}>充電速度</span>
         {TYPE_OPTIONS.map(opt => pill(
           filters.chargerType === opt.value,
@@ -73,17 +72,23 @@ export default function FilterBar({ filters, cities, onChange, resultCount }: Pr
 
         <div style={{ width: 1, height: 20, background: '#e5e7eb', flexShrink: 0, margin: '0 2px' }} />
 
-        {/* Availability */}
-        <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, marginRight: 2 }}>狀態</span>
-        {AVAIL_OPTIONS.map(opt => pill(
-          filters.availability === opt.value,
-          opt.dot,
-          () => onChange({ ...filters, availability: opt.value }),
-          <>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: filters.availability === opt.value ? 'white' : opt.dot, display: 'inline-block' }} />
-            {opt.label}
-          </>
-        ))}
+        {/* Network brand */}
+        <span style={{ fontSize: 11, color: '#9ca3af', flexShrink: 0, marginRight: 2 }}>品牌</span>
+        {pill(
+          filters.network === 'all',
+          '#374151',
+          () => onChange({ ...filters, network: 'all' }),
+          '全部'
+        )}
+        {networks.map(net => {
+          const color = NETWORK_COLORS[net] ?? '#6b7280';
+          return pill(
+            filters.network === net,
+            color,
+            () => onChange({ ...filters, network: net }),
+            net
+          );
+        })}
 
         <div style={{ width: 1, height: 20, background: '#e5e7eb', flexShrink: 0, margin: '0 2px' }} />
 
@@ -102,7 +107,6 @@ export default function FilterBar({ filters, cities, onChange, resultCount }: Pr
           {cities.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
 
-        {/* Result count */}
         <span style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0, marginLeft: 4, whiteSpace: 'nowrap' }}>
           找到 <strong style={{ color: '#374151' }}>{resultCount}</strong> 站
         </span>

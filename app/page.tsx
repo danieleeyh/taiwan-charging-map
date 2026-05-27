@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { stations, Station, getAvailStatus } from './data/stations';
+import { stations, Station } from './data/stations';
 import { Filters } from './components/layout/FilterBar';
 import Header from './components/layout/Header';
 import FilterBar from './components/layout/FilterBar';
@@ -22,7 +22,7 @@ const MapView = dynamic(() => import('./components/map/MapView'), {
   ),
 });
 
-const DEFAULT_FILTERS: Filters = { chargerType: 'all', availability: 'all', city: 'all' };
+const DEFAULT_FILTERS: Filters = { chargerType: 'all', network: 'all', city: 'all' };
 const HEADER_H = 64;
 const FILTER_H = 50;
 
@@ -33,16 +33,12 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const cities = useMemo(() => Array.from(new Set(stations.map(s => s.city))).sort(), []);
+  const networks = useMemo(() => Array.from(new Set(stations.map(s => s.network))).sort(), []);
 
   const filtered = useMemo(() => stations.filter(s => {
     if (filters.chargerType !== 'all' && s.chargerType !== filters.chargerType) return false;
+    if (filters.network !== 'all' && s.network !== filters.network) return false;
     if (filters.city !== 'all' && s.city !== filters.city) return false;
-    if (filters.availability !== 'all') {
-      const av = getAvailStatus(s);
-      if (filters.availability === 'available' && s.availableStalls === 0) return false;
-      if (filters.availability === 'busy' && av.label !== '快滿了') return false;
-      if (filters.availability === 'full' && av.label !== '無空位') return false;
-    }
     return true;
   }), [filters]);
 
@@ -77,6 +73,7 @@ export default function Home() {
       <FilterBar
         filters={filters}
         cities={cities}
+        networks={networks}
         onChange={setFilters}
         resultCount={filtered.length}
       />
