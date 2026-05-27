@@ -116,7 +116,7 @@ export default function StationPanel({ station, onClose }: { station: Station | 
                   <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.25 }}>{station.name}</h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#9ca3af' }}>
                     <MapPin size={12} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{station.address}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: station.address.includes('待確認') ? '#f59e0b' : 'inherit' }}>{station.address}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 6 }}>
                     {station.rating && (
