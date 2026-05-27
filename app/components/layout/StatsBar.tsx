@@ -1,12 +1,21 @@
 'use client';
 import { Station } from '../../data/stations';
 
-export default function StatsBar({ stations }: { stations: Station[] }) {
-  const available = stations.reduce((a, s) => a + s.availableStalls, 0);
-  const total = stations.reduce((a, s) => a + s.totalStalls, 0);
+interface Props {
+  stations: Station[];
+  lastRefresh?: Date | null;
+}
+
+export default function StatsBar({ stations, lastRefresh }: Props) {
+  const available  = stations.reduce((a, s) => a + s.availableStalls, 0);
+  const total      = stations.reduce((a, s) => a + s.totalStalls, 0);
   const utilization = total > 0 ? Math.round(((total - available) / total) * 100) : 0;
-  const v4Count = stations.filter(s => s.chargerType === 'V4').length;
+  const v4Count    = stations.filter(s => s.chargerType === 'V4').length;
   const networkCount = new Set(stations.map(s => s.network)).size;
+
+  const refreshStr = lastRefresh
+    ? lastRefresh.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+    : null;
 
   const stat = (label: string, value: string | number, color?: string, last = false) => (
     <div style={{ textAlign: 'center', padding: '10px 14px', borderRight: last ? 'none' : '1px solid rgba(0,0,0,0.06)' }}>
@@ -26,7 +35,14 @@ export default function StatsBar({ stations }: { stations: Station[] }) {
       {stat('可用格位', available, '#16a34a')}
       {stat('使用率', `${utilization}%`)}
       {stat('V4 超充', v4Count, '#7c3aed')}
-      {stat('充電品牌', networkCount, '#2563eb', true)}
+      {stat('品牌', networkCount, '#2563eb')}
+      {refreshStr && (
+        <div style={{ padding: '10px 12px', borderLeft: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 0 2px rgba(34,197,94,0.3)', animation: 'pulse 2s infinite' }} />
+          <span style={{ fontSize: 10, color: '#9ca3af', whiteSpace: 'nowrap' }}>{refreshStr}</span>
+        </div>
+      )}
+      <style>{`@keyframes pulse{0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,0.3)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0.1)}}`}</style>
     </div>
   );
 }

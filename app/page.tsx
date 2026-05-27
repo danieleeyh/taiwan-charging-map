@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import type { Station } from './data/stations';
-import { getAvailStatus } from './data/stations';
 import { Filters } from './components/layout/FilterBar';
 import Header from './components/layout/Header';
 import FilterBar from './components/layout/FilterBar';
@@ -25,6 +24,12 @@ const MapView = dynamic(() => import('./components/map/MapView'), {
 
 const DEFAULT_FILTERS: Filters = { chargerType: 'all', network: 'all', city: 'all' };
 
+function distKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
 export default function Home() {
   const [allStations, setAllStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,41 +38,76 @@ export default function Home() {
   const [view, setView] = useState<'map' | 'list'>('map');
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
-  // Fetch real stations from OCM via our API route
+  const mergeAvailability = useCallback((stations: Station[], avail: any[]) => {
+    if (!avail.length) return stations;
+    return stations.map(s => {
+      // Match by proximity ≤ 0.3 km
+      const match = avail.find(a => distKm(s.lat, s.lng, a.lat, a.lng) < 0.3);
+      if (!match) return s;
+      const stalls = Array.from({ length: match.total }, (_: unknown, i: number) => ({
+        id: i + 1,
+        status: (i < match.available ? 'available' : 'in_use') as 'available' | 'in_use',
+      }));
+      return { ...s, availableStalls: match.available, totalStalls: match.total, stalls };
+    });
+  }, []);
+
+  // Load stations + availability in parallel
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/stations')
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data: Station[]) => {
-        if (!cancelled) {
-          setAllStations(data);
-          setLoading(false);
-        }
+
+    const stationsP = fetch('/api/stations').then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<Station[]>; });
+    const availP    = fetch('/api/availability').then(r => r.ok ? r.json() : []).catch(() => []);
+
+    Promise.all([stationsP, availP])
+      .then(([stations, avail]) => {
+        if (cancelled) return;
+        setAllStations(mergeAvailability(stations, avail));
+        setLastRefresh(new Date());
+        setLoading(false);
       })
       .catch(err => {
-        if (!cancelled) {
-          console.error(err);
-          setError('無法載入充電站資料，請稍後再試');
-          setLoading(false);
-        }
+        if (cancelled) return;
+        console.error(err);
+        setError('無法載入充電站資料，請稍後再試');
+        setLoading(false);
       });
-    return () => { cancelled = true; };
-  }, []);
 
-  const cities = useMemo(() => Array.from(new Set(allStations.map(s => s.city))).sort(), [allStations]);
+    return () => { cancelled = true; };
+  }, [mergeAvailability]);
+
+  // Auto-refresh Tesla availability every 2 minutes
+  useEffect(() => {
+    if (!allStations.length) return;
+    const id = setInterval(() => {
+      fetch('/api/availability').then(r => r.ok ? r.json() : []).then(avail => {
+        if (avail.length) {
+          setAllStations(prev => mergeAvailability(prev, avail));
+          setLastRefresh(new Date());
+        }
+      }).catch(() => {});
+    }, 120_000);
+    return () => clearInterval(id);
+  }, [allStations.length, mergeAvailability]);
+
+  const cities   = useMemo(() => Array.from(new Set(allStations.map(s => s.city))).sort(), [allStations]);
   const networks = useMemo(() => Array.from(new Set(allStations.map(s => s.network))).sort(), [allStations]);
 
   const filtered = useMemo(() => allStations.filter(s => {
     if (filters.chargerType !== 'all' && s.chargerType !== filters.chargerType) return false;
-    if (filters.network !== 'all' && s.network !== filters.network) return false;
-    if (filters.city !== 'all' && s.city !== filters.city) return false;
+    if (filters.network    !== 'all' && s.network    !== filters.network)    return false;
+    if (filters.city       !== 'all' && s.city       !== filters.city)       return false;
     return true;
   }), [allStations, filters]);
+
+  // Keep selected station in sync with refreshed data
+  const selectedLive = useMemo(() => {
+    if (!selected) return null;
+    return allStations.find(s => s.id === selected.id) ?? selected;
+  }, [selected, allStations]);
 
   if (loading) return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 16 }}>
@@ -89,7 +129,7 @@ export default function Home() {
 
       {view === 'map' && (
         <div style={{ position: 'absolute', inset: 0 }}>
-          <MapView stations={filtered} selectedStation={selected} onSelectStation={setSelected} userLocation={userLocation} />
+          <MapView stations={filtered} selectedStation={selectedLive} onSelectStation={setSelected} userLocation={userLocation} />
         </div>
       )}
 
@@ -104,9 +144,9 @@ export default function Home() {
 
       <FilterBar filters={filters} cities={cities} networks={networks} onChange={setFilters} resultCount={filtered.length} />
 
-      {view === 'map' && <StatsBar stations={filtered} />}
+      {view === 'map' && <StatsBar stations={filtered} lastRefresh={lastRefresh} />}
 
-      <StationPanel station={selected} onClose={() => setSelected(null)} />
+      <StationPanel station={selectedLive} onClose={() => setSelected(null)} />
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
