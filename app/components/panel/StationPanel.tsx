@@ -1,12 +1,23 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { X, Zap, MapPin, Clock, Star, ChevronRight, Navigation, Utensils, Coffee, Building2, ShoppingBag, ParkingSquare, Wifi, Store, Bath, DollarSign } from 'lucide-react';
-import { Station, AmenityType, amenityLabels, getAvailStatus, getChargerStyle } from '../../data/stations';
+import { X, Zap, MapPin, Clock, Star, ChevronRight, Navigation, Utensils, Coffee, Building2, ShoppingBag, ParkingSquare, Wifi, Store, Bath, DollarSign, Plug } from 'lucide-react';
+import { Station, AmenityType, amenityLabels, getAvailStatus, getChargerStyle, ConnectorType } from '../../data/stations';
 
 const amenityIcons: Record<AmenityType, React.ReactNode> = {
   restaurant: <Utensils size={13} />, cafe: <Coffee size={13} />, hotel: <Building2 size={13} />,
   shopping: <ShoppingBag size={13} />, parking: <ParkingSquare size={13} />, restroom: <Bath size={13} />,
   wifi: <Wifi size={13} />, convenience: <Store size={13} />,
+};
+
+const CONNECTOR_COLORS: Record<ConnectorType, { bg: string; text: string; label: string }> = {
+  CCS2:    { bg: '#eff6ff', text: '#2563eb', label: 'CCS2' },
+  CHAdeMO: { bg: '#fffbeb', text: '#d97706', label: 'CHAdeMO' },
+  Tesla:   { bg: '#fef2f2', text: '#dc2626', label: 'Tesla' },
+  Type2:   { bg: '#f0fdf4', text: '#16a34a', label: 'Type 2' },
+};
+
+const NETWORK_COLORS: Record<string, string> = {
+  Tesla: '#dc2626', Evalue: '#2563eb', 'ForMosa EV': '#16a34a', '自建': '#9ca3af',
 };
 
 function StallGrid({ station }: { station: Station }) {
@@ -45,52 +56,62 @@ export default function StationPanel({ station, onClose }: { station: Station | 
       const id = requestAnimationFrame(() => setVisible(true));
       bodyRef.current?.scrollTo(0, 0);
       return () => cancelAnimationFrame(id);
-    } else {
-      setVisible(false);
-    }
+    } else { setVisible(false); }
   }, [station?.id]);
 
   const av = station ? getAvailStatus(station) : null;
   const cs = station ? getChargerStyle(station.chargerType) : null;
+  const networkColor = station ? (NETWORK_COLORS[station.network] ?? '#6b7280') : '#6b7280';
+
+  const chargerLabel: Record<string, string> = { V4: 'V4 超快充', V3: 'V3 快充', V2: 'V2 快充', AC: '目的地慢充' };
 
   return (
     <>
       {station && (
-        <div onClick={onClose} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.22)', zIndex: 1100,
-          opacity: visible ? 1 : 0, transition: 'opacity 0.3s',
-        }} />
+        <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.22)', zIndex: 1100, opacity: visible ? 1 : 0, transition: 'opacity 0.3s' }} />
       )}
-
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200,
         background: 'white', borderRadius: '24px 24px 0 0',
         boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
-        display: 'flex', flexDirection: 'column',
-        maxHeight: '90vh',
+        display: 'flex', flexDirection: 'column', maxHeight: '90vh',
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.45s cubic-bezier(0.32,0.72,0,1)',
         willChange: 'transform',
       }}>
-        {/* Drag handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb' }} />
         </div>
 
         {station && (
           <>
-            {/* ── Header ── */}
+            {/* Header */}
             <div style={{ padding: '12px 20px 16px', borderBottom: '1px solid #f9fafb', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 10 }}>
+                  {/* Badges row 1: type + availability */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: cs!.bg, color: cs!.text, border: `1px solid ${cs!.border}` }}>
-                      <Zap size={10} /> {station.chargerType} · {station.maxKw} kW
+                      <Zap size={10} fill={cs!.text} /> {chargerLabel[station.chargerType] ?? station.chargerType} · {station.maxKw} kW
                     </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: av!.bg, color: av!.text }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: av!.bg, color: av!.text }}>
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: av!.color, display: 'inline-block' }} />
                       {av!.label}
                     </span>
+                  </div>
+                  {/* Badges row 2: network + connectors */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: `${networkColor}15`, color: networkColor }}>
+                      {station.network}
+                    </span>
+                    {station.connectors.map(c => {
+                      const style = CONNECTOR_COLORS[c];
+                      return (
+                        <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: style.bg, color: style.text }}>
+                          <Plug size={9} /> {style.label}
+                        </span>
+                      );
+                    })}
                   </div>
                   <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: '0 0 6px', lineHeight: 1.25 }}>{station.name}</h2>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: '#9ca3af' }}>
@@ -119,9 +140,8 @@ export default function StationPanel({ station, onClose }: { station: Station | 
               </div>
             </div>
 
-            {/* ── Body ── */}
+            {/* Body */}
             <div ref={bodyRef} style={{ flex: 1, overflowY: 'auto', padding: '20px 20px 0', display: 'flex', flexDirection: 'column', gap: 22 }}>
-
               <StallGrid station={station} />
 
               {/* Power card */}
@@ -131,7 +151,9 @@ export default function StationPanel({ station, onClose }: { station: Station | 
                   <div style={{ fontSize: 32, fontWeight: 700, color: '#111827', lineHeight: 1 }}>
                     {station.maxKw}<span style={{ fontSize: 15, fontWeight: 500, color: '#9ca3af', marginLeft: 4 }}>kW</span>
                   </div>
-                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>≈ {Math.round(station.maxKw / 5)} km / 分鐘</div>
+                  <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>
+                    {station.chargerType === 'AC' ? `≈ ${station.maxKw} km / 小時` : `≈ ${Math.round(station.maxKw / 5)} km / 分鐘`}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
                   <div style={{ width: 52, height: 52, borderRadius: 14, background: cs!.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -160,7 +182,7 @@ export default function StationPanel({ station, onClose }: { station: Station | 
                 </div>
               )}
 
-              {/* Charge estimate */}
+              {/* Cost estimator */}
               {station.pricePerKwh && (
                 <div style={{ background: '#f9fafb', borderRadius: 16, padding: '16px 18px' }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>充電費用估算</div>
@@ -176,18 +198,16 @@ export default function StationPanel({ station, onClose }: { station: Station | 
                 </div>
               )}
 
-              {/* CTA buttons */}
+              {/* CTAs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 28 }}>
-                <button style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: '#111827', color: 'white', padding: '15px 20px', borderRadius: 16, border: 'none',
-                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
-                }}>
+                <button onClick={() => { window.open(`https://maps.google.com/?q=${station.lat},${station.lng}`, '_blank'); }}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111827', color: 'white', padding: '15px 20px', borderRadius: 16, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Navigation size={17} />前往導航</span>
                   <ChevronRight size={17} color="#6b7280" />
                 </button>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <button style={{ padding: '13px 16px', borderRadius: 14, border: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 14, fontWeight: 500, color: '#374151', cursor: 'pointer' }}>
+                  <button onClick={() => { if (navigator.share) { navigator.share({ title: station.name, text: station.address, url: `https://maps.google.com/?q=${station.lat},${station.lng}` }); }}}
+                    style={{ padding: '13px 16px', borderRadius: 14, border: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 14, fontWeight: 500, color: '#374151', cursor: 'pointer' }}>
                     分享站點
                   </button>
                   <button style={{ padding: '13px 16px', borderRadius: 14, border: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 14, fontWeight: 500, color: '#374151', cursor: 'pointer' }}>
