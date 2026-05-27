@@ -5,12 +5,12 @@ import { Station, getAvailStatus, getChargerStyle, ConnectorType } from '../../d
 const CONNECTOR_COLORS: Record<ConnectorType, { bg: string; text: string }> = {
   CCS2:    { bg: '#eff6ff', text: '#2563eb' },
   CHAdeMO: { bg: '#fffbeb', text: '#d97706' },
-  Tesla:   { bg: '#fef2f2', text: '#dc2626' },
+  NACS:    { bg: '#fef2f2', text: '#dc2626' },
   Type2:   { bg: '#f0fdf4', text: '#16a34a' },
 };
 
 const NETWORK_COLORS: Record<string, string> = {
-  Tesla: '#dc2626', Evalue: '#2563eb', 'ForMosa EV': '#16a34a', '自建': '#9ca3af',
+  Tesla: '#dc2626', Evalue: '#2563eb', 'ForMosa EV': '#16a34a', '自建': '#9ca3af', 'U-Power': '#7c3aed', '裕電能源': '#2563eb', '台灣中油': '#16a34a', '台灣電力': '#f59e0b', '停車場自建': '#6b7280',
 };
 
 export default function StationCard({ station, onSelect }: { station: Station; onSelect: (s: Station) => void }) {
@@ -47,7 +47,7 @@ export default function StationCard({ station, onSelect }: { station: Station; o
       <div style={{ display: 'flex', gap: 5, marginBottom: 12 }}>
         {station.connectors.map(c => {
           const s = CONNECTOR_COLORS[c];
-          return <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: s.bg, color: s.text }}><Plug size={9} />{c}</span>;
+          return <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: s.bg, color: s.text }}><Plug size={9} />{c === 'NACS' ? 'Tesla NACS' : c}</span>;
         })}
       </div>
 

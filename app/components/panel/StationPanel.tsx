@@ -12,12 +12,12 @@ const amenityIcons: Record<AmenityType, React.ReactNode> = {
 const CONNECTOR_COLORS: Record<ConnectorType, { bg: string; text: string; label: string }> = {
   CCS2:    { bg: '#eff6ff', text: '#2563eb', label: 'CCS2' },
   CHAdeMO: { bg: '#fffbeb', text: '#d97706', label: 'CHAdeMO' },
-  Tesla:   { bg: '#fef2f2', text: '#dc2626', label: 'Tesla' },
+  NACS:    { bg: '#fef2f2', text: '#dc2626', label: 'Tesla NACS' },
   Type2:   { bg: '#f0fdf4', text: '#16a34a', label: 'Type 2' },
 };
 
 const NETWORK_COLORS: Record<string, string> = {
-  Tesla: '#dc2626', Evalue: '#2563eb', 'ForMosa EV': '#16a34a', '自建': '#9ca3af',
+  Tesla: '#dc2626', Evalue: '#2563eb', 'ForMosa EV': '#16a34a', '自建': '#9ca3af', 'U-Power': '#7c3aed', '裕電能源': '#2563eb', '台灣中油': '#16a34a', '台灣電力': '#f59e0b', '停車場自建': '#6b7280',
 };
 
 function StallGrid({ station }: { station: Station }) {

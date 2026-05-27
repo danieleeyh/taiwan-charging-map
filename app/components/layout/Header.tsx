@@ -42,7 +42,7 @@ export default function Header({ stations, view, onViewChange, onSelect, onUserL
   };
 
   const CONNECTOR_COLORS: Record<string, string> = {
-    CCS2: '#2563eb', CHAdeMO: '#d97706', Tesla: '#dc2626', Type2: '#16a34a',
+    CCS2: '#2563eb', CHAdeMO: '#d97706', NACS: '#dc2626', Type2: '#16a34a',
   };
 
   return (
@@ -95,7 +95,7 @@ export default function Header({ stations, view, onViewChange, onSelect, onUserL
                         <span>{s.chargerType}</span>
                         <span>·</span>
                         {s.connectors.map(c => (
-                          <span key={c} style={{ padding: '1px 5px', borderRadius: 4, background: `${CONNECTOR_COLORS[c]}18`, color: CONNECTOR_COLORS[c], fontSize: 11, fontWeight: 600 }}>{c}</span>
+                          <span key={c} style={{ padding: '1px 5px', borderRadius: 4, background: `${CONNECTOR_COLORS[c]}18`, color: CONNECTOR_COLORS[c], fontSize: 11, fontWeight: 600 }}>{c === 'NACS' ? 'Tesla NACS' : c}</span>
                         ))}
                       </div>
                     </div>
