@@ -200,13 +200,13 @@ export default function StationPanel({ station, onClose }: { station: Station | 
 
               {/* CTAs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 28 }}>
-                <button onClick={() => { window.open(`https://maps.google.com/?q=${station.lat},${station.lng}`, '_blank'); }}
+                <button onClick={() => { window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(station.name + ' ' + station.address)}`, '_blank'); }}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111827', color: 'white', padding: '15px 20px', borderRadius: 16, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}><Navigation size={17} />前往導航</span>
                   <ChevronRight size={17} color="#6b7280" />
                 </button>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <button onClick={() => { if (navigator.share) { navigator.share({ title: station.name, text: station.address, url: `https://maps.google.com/?q=${station.lat},${station.lng}` }); }}}
+                  <button onClick={() => { if (navigator.share) { navigator.share({ title: station.name, text: station.address, url: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(station.name + ' ' + station.address)}` }); }}}
                     style={{ padding: '13px 16px', borderRadius: 14, border: '1px solid #f3f4f6', background: '#f9fafb', fontSize: 14, fontWeight: 500, color: '#374151', cursor: 'pointer' }}>
                     分享站點
                   </button>
